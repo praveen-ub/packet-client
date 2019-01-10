@@ -19,4 +19,6 @@ public interface AppConstants{
 	
 	String STATE = "state";
 	
+	String KEYS = "ssh-keys";
+	
 }

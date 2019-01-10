@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.packet.challenge.model.Device;
 import com.packet.challenge.model.EnvironmentConfig;
 import com.packet.challenge.service.DeviceService;
+import com.packet.challenge.service.ProjectService;
 
 
 @RestController
@@ -22,6 +23,9 @@ public class DeploymentController{
 	
 	@Autowired
 	private DeviceService deviceService;
+	
+	@Autowired
+	private ProjectService projectService;
 		
 	private static final Logger logger = LoggerFactory.getLogger(DeploymentController.class);
 	
@@ -83,6 +87,12 @@ public class DeploymentController{
 	    	deviceService.performAction(deviceId, Device.Action.POWER_OFF);
 	    }
 		return true;
+	}
+	
+	@RequestMapping(method=RequestMethod.GET, value="/project_keys")
+	public JsonNode getProjectSSHKeys(){
+		
+		return projectService.getSSHKeys();
 	}
 	
 	private long getTimeElapsedInMinutes (long startTime, long endTime){
