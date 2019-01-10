@@ -1,7 +1,6 @@
 package com.packet.challenge.service;
 
 import static com.packet.challenge.AppConstants.DEVICES;
-import static com.packet.challenge.AppConstants.EVENTS;
 import static com.packet.challenge.AppConstants.PROJECTS;
 import static com.packet.challenge.AppConstants.SLASH;
 import static com.packet.challenge.AppConstants.STATE;
@@ -14,7 +13,8 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,46 +24,49 @@ import com.packet.challenge.utils.RequestUtils;
 
 
 
-@Component
+@Service
 public class DeviceService{
 	
-	@Value("${config.project_id}")
-	private String PROJECT_ID;
-	
+		
 	@Autowired
 	private RequestUtils requestUtils;
 	
+	@Value("${app.config.project_id}")
+	private String PROJECT_ID;
+	
 	private static final Logger logger = LoggerFactory.getLogger(DeploymentController.class);
 	
-	public JsonNode create(Device deviceConfig){
+	public JsonNode create(Device deviceConfig) {
 		
 		logger.info("Entering create device");
 		
+		String url = requestUtils.getEndPoint(PROJECTS) + SLASH + PROJECT_ID + SLASH + DEVICES;
 		HttpMethod method = HttpMethod.POST;
 		RestTemplate restTemplate = new RestTemplate();
-		HttpEntity<Device> httpEntity = new HttpEntity<Device> (deviceConfig, requestUtils.getHeaders(method));
-		String url = requestUtils.getEndPoint(PROJECTS) + SLASH + PROJECT_ID + SLASH + DEVICES;
+		MultiValueMap<String, String> headers =  requestUtils.getHeaders(method);
+		HttpEntity<Device> httpEntity = new HttpEntity<Device> (deviceConfig,headers);
 		ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.POST, httpEntity, JsonNode.class);
 		JsonNode responseBody = response.getBody();
-		if(responseBody.get("errors")!=null){
+		
+		if(response.getStatusCode() == HttpStatus.UNPROCESSABLE_ENTITY){
 			logger.debug("Unable to create device due to {}", response.getBody());
 			return null;
 		}
+		logger.info("Created device successfully");
 		return responseBody;	
 	}
 	
 	public JsonNode getDetails(String deviceId){
 
-		
 		logger.info("Going to get details of device {}", deviceId);
 		
-		//handle device not found
 		HttpMethod method = HttpMethod.GET;
 		RestTemplate restTemplate = new RestTemplate();
 		HttpEntity<Object> httpEntity = new HttpEntity<Object> (requestUtils.getHeaders(method));
-		String url = requestUtils.getEndPoint(DEVICES) + SLASH + deviceId + SLASH + EVENTS;
+		String url = requestUtils.getEndPoint(DEVICES) + SLASH + deviceId;
 		ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, httpEntity, JsonNode.class);
 		if(response.getStatusCode() == HttpStatus.NOT_FOUND){
+			logger.debug("Device with id {} not found",deviceId);
 			return null;
 		}
 		return response.getBody();
@@ -76,21 +79,22 @@ public class DeviceService{
 		
 		JsonNode deviceDetails = getDetails(deviceId);
 		if(deviceDetails!=null){
-			return deviceDetails.get(0).get(STATE).asText();
+			return deviceDetails.get(STATE).asText();
 		}
 		return null;
 	}
 	
+	//Does not work with project level API key
 	public boolean performAction(String deviceId,  Device.Action action){
 		
 		logger.info("Action {} trigger on device {}",action,deviceId);
 		
-		HttpMethod method = HttpMethod.GET;
+		HttpMethod method = HttpMethod.POST;
 		RestTemplate restTemplate = new RestTemplate();
 		
 		HttpEntity<Object> request = new HttpEntity<Object>(requestUtils.getHeaders(method));
-		String url = requestUtils.getEndPoint(DEVICES) + SLASH + deviceId +"/actions?type="+action;
-		restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+		String url = requestUtils.getEndPoint(DEVICES) + SLASH + deviceId +"/actions?type="+action.getActionStr();
+		restTemplate.exchange(url, method, request, String.class);
 		return true;
 	}
 	
@@ -98,11 +102,12 @@ public class DeviceService{
 		
 		logger.info("Entering to delete device {}", deviceId);
 		
-		HttpMethod method = HttpMethod.GET;
+		HttpMethod method = HttpMethod.DELETE;
 		RestTemplate restTemplate = new RestTemplate();
 		HttpEntity<Object> request = new HttpEntity<Object>(requestUtils.getHeaders(method));
 		String url = requestUtils.getEndPoint(DEVICES) + SLASH + deviceId;
-		restTemplate.exchange(url, HttpMethod.DELETE, request, String.class);
+		restTemplate.exchange(url, method, request, String.class);
+		logger.info("Deleted device {} successfully", deviceId);
 		return true;
 	}
 
