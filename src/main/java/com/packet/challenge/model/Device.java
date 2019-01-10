@@ -31,6 +31,9 @@ public class Device{
 	private String operatingSystem;
 	
 	private ArrayNode facility;
+	
+	@JsonProperty("hostname")
+	private String hostName;
 
 	public String getPlan() {
 		return plan;
@@ -54,6 +57,14 @@ public class Device{
 
 	public void setFacility(ArrayNode facility) {
 		this.facility = facility;
+	}
+	
+	public String getHostName() {
+		return hostName;
+	}
+
+	public void setHostName(String hostName) {
+		this.hostName = hostName;
 	}
 	
 }

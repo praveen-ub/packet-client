@@ -1,5 +1,7 @@
 package com.packet.challenge.controller;
 
+import java.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,14 +22,27 @@ public class DeploymentController{
 	
 	@Autowired
 	private DeviceService deviceService;
-	
+		
 	private static final Logger logger = LoggerFactory.getLogger(DeploymentController.class);
 	
 	@RequestMapping(method=RequestMethod.POST, value="run_acceptance_testing")
-	public boolean runUserAcceptanceTesting(@RequestBody EnvironmentConfig config) throws InterruptedException{
+	public boolean runUserAcceptanceTesting(@RequestBody EnvironmentConfig config) throws InterruptedException, IOException{
 		
+		/*    Sample Input: t1.small.x86, Ubuntu 16.04 LTS, Amsterdam | any
+		{
+			"tearDownAfterRun":true,
+			"deviceInfo":{
+				"hostname":"staging-server",
+				"plan":"e69c0169-4726-46ea-98f1-939c9e8a3607", 
+				"operating_system":"1b9b78e3-de68-466e-ba00-f2123e89c112", 
+				"facility":["8e6470b3-b75e-47d1-bb93-45b225750975","any"], 
+			}
+		} 
+		 */
+		
+				
 		logger.info("Starting to run acceptance testing");
-		logger.info("Should enviroment has to be retained post run?::{}", config.isTearDownAfterRun());
+		logger.info("Should enviroment has to be destroyed post run?::{}", config.isTearDownAfterRun());
 			
 	    JsonNode deviceDetails = deviceService.create(config.getDeviceInfo());
 	    if(deviceDetails == null){
@@ -38,12 +53,17 @@ public class DeploymentController{
 	    logger.info("Starting to poll device {} for 'active' status",deviceId);
 	    long timerStart = System.currentTimeMillis();
 	    //Wait until 5 mins to see if server deployment is successful
-	    while(getTimeElapsedInMinutes(timerStart, System.currentTimeMillis()) < 5){ 
+	    while(true){ 
 	    	
+	    	long timeElapsed = getTimeElapsedInMinutes(timerStart, System.currentTimeMillis());
+	    	if(timeElapsed >= 5){	
+	    		return false; //deployment failed
+	    	}
 	    	if("active".equalsIgnoreCase(deviceService.getStatus(deviceId))){
+	    		logger.info("Device {} is now active", deviceId);
 	    		break;
 	    	}
-	    	Thread.sleep(60*1000); //check status again after a minute
+	    	Thread.sleep(30*1000); //check status again after a minute
 	    }
 		
 	    /* 
@@ -52,7 +72,7 @@ public class DeploymentController{
 	     * <device_ip>:<port>
 	     */
 	    //Pausing for time taken for the app deployment & testing scripts to complete  
-	    Thread.sleep(5*60*1000);
+	    Thread.sleep(2*60*1000);
 	    
 	    if(config.isTearDownAfterRun()){
 	    	logger.info("Deleting device {}",deviceId);
