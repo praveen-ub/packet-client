@@ -45,7 +45,7 @@ public class DeviceService{
 		RestTemplate restTemplate = new RestTemplate();
 		MultiValueMap<String, String> headers =  requestUtils.getHeaders(method);
 		HttpEntity<Device> httpEntity = new HttpEntity<Device> (deviceConfig,headers);
-		ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.POST, httpEntity, JsonNode.class);
+		ResponseEntity<JsonNode> response = restTemplate.exchange(url, method , httpEntity, JsonNode.class);
 		JsonNode responseBody = response.getBody();
 		
 		if(response.getStatusCode() == HttpStatus.UNPROCESSABLE_ENTITY){
@@ -64,7 +64,7 @@ public class DeviceService{
 		RestTemplate restTemplate = new RestTemplate();
 		HttpEntity<Object> httpEntity = new HttpEntity<Object> (requestUtils.getHeaders(method));
 		String url = requestUtils.getEndPoint(DEVICES) + SLASH + deviceId;
-		ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, httpEntity, JsonNode.class);
+		ResponseEntity<JsonNode> response = restTemplate.exchange(url, method , httpEntity, JsonNode.class);
 		if(response.getStatusCode() == HttpStatus.NOT_FOUND){
 			logger.debug("Device with id {} not found",deviceId);
 			return null;
