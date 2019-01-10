@@ -5,13 +5,13 @@ public interface AppConstants{
 	
 	String AUTH_TOKEN_STRING = "X-Auth-Token";
 	
-	String PROJECTS = "PROJECTS";
+	String PROJECTS = "projects";
 	
-	String DEVICES = "DEVICES";
-	
-	String EVENTS = "EVENTS";
+	String DEVICES = "devices";
 	
 	String CONTENT_TYPE = "Content-Type";
+	
+	String ACCEPT = "Accept";
 	
 	String JSON = "application/json";
 	
