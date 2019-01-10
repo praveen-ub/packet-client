@@ -105,7 +105,7 @@ public class DeviceService{
 		HttpMethod method = HttpMethod.DELETE;
 		RestTemplate restTemplate = new RestTemplate();
 		HttpEntity<Object> request = new HttpEntity<Object>(requestUtils.getHeaders(method));
-		String url = requestUtils.getEndPoint(DEVICES) + SLASH + deviceId;
+		String url = requestUtils.getEndPoint(DEVICES) + SLASH + deviceId+"?force_delete=true";
 		restTemplate.exchange(url, method, request, String.class);
 		logger.info("Deleted device {} successfully", deviceId);
 		return true;
