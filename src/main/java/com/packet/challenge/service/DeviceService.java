@@ -1,70 +1,107 @@
 package com.packet.challenge.service;
 
+import static com.packet.challenge.AppConstants.DEVICES;
+import static com.packet.challenge.AppConstants.EVENTS;
+import static com.packet.challenge.AppConstants.PROJECTS;
+import static com.packet.challenge.AppConstants.SLASH;
+import static com.packet.challenge.AppConstants.STATE;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.packet.challenge.config.PacketConfig;
+import com.packet.challenge.controller.DeploymentController;
+import com.packet.challenge.model.Device;
+import com.packet.challenge.utils.RequestUtils;
 
-@Service
+
+
+@Component
 public class DeviceService{
 	
-	public JsonNode createDevice(JsonNode deviceConfig){
+	@Value("${config.project_id}")
+	private String PROJECT_ID;
+	
+	@Autowired
+	private RequestUtils requestUtils;
+	
+	private static final Logger logger = LoggerFactory.getLogger(DeploymentController.class);
+	
+	public JsonNode create(Device deviceConfig){
 		
+		logger.info("Entering create device");
+		
+		HttpMethod method = HttpMethod.POST;
 		RestTemplate restTemplate = new RestTemplate();
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-		headers.add("X-Auth-Token", PacketConfig.AUTH_TOKEN);
-		headers.add("Content-Type", "application/json");
-		HttpEntity<JsonNode> httpEntity = new HttpEntity<JsonNode> (deviceConfig,headers);
-		String url = PacketConfig.PROJECTS_ENDPOINT+"/"+PacketConfig.PROJECT_ID+"/devices";
+		HttpEntity<Device> httpEntity = new HttpEntity<Device> (deviceConfig, requestUtils.getHeaders(method));
+		String url = requestUtils.getEndPoint(PROJECTS) + SLASH + PROJECT_ID + SLASH + DEVICES;
 		ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.POST, httpEntity, JsonNode.class);
-		return response.getBody();	
+		JsonNode responseBody = response.getBody();
+		if(responseBody.get("errors")!=null){
+			logger.debug("Unable to create device due to {}", response.getBody());
+			return null;
+		}
+		return responseBody;	
 	}
 	
-	public JsonNode getDeviceDetails(String deviceId){
+	public JsonNode getDetails(String deviceId){
 
+		
+		logger.info("Going to get details of device {}", deviceId);
+		
 		//handle device not found
+		HttpMethod method = HttpMethod.GET;
 		RestTemplate restTemplate = new RestTemplate();
-		HttpHeaders headers = new HttpHeaders();
-		headers.set("X-Auth-Token", PacketConfig.AUTH_TOKEN); //Move string literals to constants
-		HttpEntity<String> httpEntity = new HttpEntity<String> ("headers",headers);
-		String url = PacketConfig.DEVICES_ENDPOINT+"/"+deviceId+"/events";
+		HttpEntity<Object> httpEntity = new HttpEntity<Object> (requestUtils.getHeaders(method));
+		String url = requestUtils.getEndPoint(DEVICES) + SLASH + deviceId + SLASH + EVENTS;
 		ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, httpEntity, JsonNode.class);
+		if(response.getStatusCode() == HttpStatus.NOT_FOUND){
+			return null;
+		}
 		return response.getBody();
 	}
 
-	public String getDeviceStatus(String deviceId){
+	public String getStatus(String deviceId){
 
-		//handle device not found
-		JsonNode deviceDetails = getDeviceDetails(deviceId);
-		return deviceDetails.get(0).get("state").asText();
+		
+		logger.info("Going to get status of device {}", deviceId);
+		
+		JsonNode deviceDetails = getDetails(deviceId);
+		if(deviceDetails!=null){
+			return deviceDetails.get(0).get(STATE).asText();
+		}
+		return null;
 	}
 	
-	public boolean performAction(String deviceId, String action){
+	public boolean performAction(String deviceId,  Device.Action action){
 		
+		logger.info("Action {} trigger on device {}",action,deviceId);
+		
+		HttpMethod method = HttpMethod.GET;
 		RestTemplate restTemplate = new RestTemplate();
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-		headers.add("X-Auth-Token", PacketConfig.AUTH_TOKEN);
-		HttpEntity<Object> request = new HttpEntity<Object>(headers);
-		String url = PacketConfig.DEVICES_ENDPOINT+"/"+deviceId+"/actions?type="+action;
+		
+		HttpEntity<Object> request = new HttpEntity<Object>(requestUtils.getHeaders(method));
+		String url = requestUtils.getEndPoint(DEVICES) + SLASH + deviceId +"/actions?type="+action;
 		restTemplate.exchange(url, HttpMethod.POST, request, String.class);
 		return true;
 	}
 	
-	
-	public boolean deleteDevice(String deviceId){
+	public boolean delete(String deviceId){
 		
+		logger.info("Entering to delete device {}", deviceId);
+		
+		HttpMethod method = HttpMethod.GET;
 		RestTemplate restTemplate = new RestTemplate();
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-		headers.add("X-Auth-Token", PacketConfig.AUTH_TOKEN);
-		HttpEntity<Object> request = new HttpEntity<Object>(headers);
-		String url = PacketConfig.DEVICES_ENDPOINT+"/"+deviceId;
+		HttpEntity<Object> request = new HttpEntity<Object>(requestUtils.getHeaders(method));
+		String url = requestUtils.getEndPoint(DEVICES) + SLASH + deviceId;
 		restTemplate.exchange(url, HttpMethod.DELETE, request, String.class);
 		return true;
 	}
