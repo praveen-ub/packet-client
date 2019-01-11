@@ -43,3 +43,24 @@ Execute ‘gradle clean build’
 Execute ‘gradle bootRun’
 
              The app will start on the default port 8080, log can be found in home folder
+	     
+Example:
+
+Url: http://localhost:8080/deployment/run_acceptance_testing
+
+Method: POST
+
+Sample input (application/json): 
+
+{
+
+	"tearDownAfterRun":true,
+	"deviceInfo":{
+		"plan":"e69c0169-4726-46ea-98f1-939c9e8a3607",
+		"operating_system":"1b9b78e3-de68-466e-ba00-f2123e89c112",
+		"facility":["e69c0169-4726-46ea-98f1-939c9e8a3607","any"],
+		"hostname":"staging-server-new"
+	}
+}
+
+	    
